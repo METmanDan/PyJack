@@ -1,0 +1,182 @@
+import random, sys
+
+# Constants to hold our suit characters
+HEARTS   = chr(9829)
+DIAMONDS = chr(9830)
+SPADES   = chr(9824)
+CLUBS    = chr(9827)
+# The back of the card
+BACKSIDE = 'backside'
+
+def main():
+    print("""Blackjack, by Dan Mooney daniel_mooney@homedepot.com
+
+    Rules:
+        Try to get as close to 21 without going over.
+        Kings, Queens, and Jacks are worth 10 points.
+        Aces are worth 1 or 11 points.
+        Cards 2 through 10 are worth their face value.
+        (H)it to take another card.
+        (S)tand to stop taking cards.
+        On your first play, you may (D)ouble down to increase your bet
+        but must hit exactly one more time before standing.
+        In case of a tie, the bet is returned to the player.
+        The dealer stops hitting at 17.""")
+
+    money = 5000
+    while True: # Main game loop
+        # Check if player has run out of money
+        if money <= 0:
+            print("You're broke!")
+            print("Thanks for playing!")
+            sys.exit()
+
+        # Let the player enter a bet for this round:
+        print("Money: ", money)
+        bet = getBet(money)
+
+        # Deal 2 cards each to the player and the dealer
+        deck = getDeck()
+        dealerHand = [deck.pop(), deck.pop()]
+        playerHand = [deck.pop(), deck.pop()]
+
+        # Handle player actions:
+        print("Bet: ", bet)
+        while True: # Loop until player stands or busts
+            displayHands(playerHand, dealerHand, False)
+            print()
+
+            # Check if the player has bust:
+            if getHandValue(playerHand) > 21:
+                break
+
+            # Get player's move(H, S, or D)
+            move = getMove(playerHand, money - bet)
+
+            # Action Handler
+            if move == 'D':
+                # Player is doubling down
+                additionalBet = getBet(min(bet, (money - bet)))
+                bet += additionalBet
+                print('Bet increased to {}.'.format(bet))
+                print('Bet: ', bet)
+
+            if move in ('H', 'D'):
+                # Hit/doubling down takes another card.
+                newCard = deck.pop()
+                rank, suit = newCard
+                print('You draw a {} of {}.'.format(rank, suit))
+                playerHand.append(newCard)
+
+                if getHandValue(playerHand) > 21:
+                    # BUST!!!
+                    continue
+
+            if move in ('S', 'D'):
+                # Stand/doubling down stops player's turn.
+                break
+
+        # Handle dealer actions
+        if getHandValue(playerHand) <= 21:
+            while getHandValue(dealerHand) < 17:
+                # Dealer hits.
+                print('Dealer hits...')
+                dealerHand.append(deck.pop())
+                displayHands(playerHand, dealerHand, False)
+
+                if getHandValue(dealerHand) > 21:
+                    break # Dealer busts
+                input('Press Enter to continue...')
+                print('\n\n')
+
+        # Show final hands
+        displayHands(playerHand, dealerHand, True)
+
+        playerValue = getHandValue(playerHand)
+        dealerValue = getHandValue(dealerHand)
+        # Handle results
+        if dealerValue > 21:
+            print('Dealer busts! You win ${}!'.format(bet))
+            money += bet
+        elif (playerValue > 21) or (playerValue < dealerValue):
+            print('You lose!')
+            money -= bet
+        elif playerValue > dealerValue:
+            print('You won ${}!'.format(bet))
+            money += bet
+        elif playerValue == dealerValue:
+            print('It\'s a tie, the bet is returned.')
+
+        input('Press Enter to continue...')
+        print('\n\n')
+
+
+def getBet(maxBet):
+    """Ask the player how much they'd like to bet"""
+    while True: # Keep asking until we receive valid input
+        print('How much would you like to bet? (1-{}, or QUIT'.format(maxBet))
+        bet = input('> ').upper().strip()
+        if bet == 'QUIT':
+            print('Thanks for playing!')
+            sys.exit()
+        if not bet.isdecimal():
+            continue # Ask again if a non-number was given
+
+        bet = int(bet)
+        if 1 <= bet <= maxBet:
+            return bet # Valid input entered
+        
+
+def getDeck():
+    """Return a list of (rank, suit) tuples for all 52 cards in the deck"""
+    deck = []
+    for suit in (HEARTS, DIAMONDS, SPADES, CLUBS):
+        for rank in range(2, 11):
+            deck.append((str(rank), suit)) # Add the numbered cards.
+        for rank in ('J', 'Q', 'K', 'A'):
+            deck.append((rank, suit)) # Add faces and Aces
+    random.shuffle(deck) 
+    return deck
+
+def displayHands(playerHand, dealerHand, showDealerHand):
+    """Show the player's and dealer's cards. Hide the dealer's first
+    card if showDealerHand is False"""
+    print()
+    if showDealerHand:
+        print('DEALER: ', getHandValue(dealerHand))
+        displayCards(dealerHand)
+    else:
+        print('DEALER: ???')
+        # Hide the dealer's first card:
+        displayCards([BACKSIDE] + dealerHand[1:])
+    # Show the player's cards:
+    print('PLAYER: ', getHandValue(playerHand))
+    displayCards(playerHand)
+
+def getHandValue(cards):
+    """Returns the value of the cards. Face cards are worth 10, aces are
+    worth 11 or 1(this function will pick the most suitable value)"""
+    value = 0
+    numberOfAces = 0
+
+    # Sum non-ace cards
+    for card in cards:
+        rank = card[0] # card is a tuple (rank, suit)
+        if rank == 'A':
+            numberOfAces += 1
+        elif rank in ('K', 'Q', 'J'): # Faces worth 10 points
+            value += 10
+        else:
+            value += int(rank) # All other cards are worth their numerical value
+
+    # Add the value of the aces:
+    value += numberOfAces # Add 1 per ace.
+    for i in range(numberOfAces):
+        # Add 10 if able to do so without busting
+        if value + 10 <= 21:
+            value += 10
+
+    return value
+
+if __name__ == "__main__":
+    main()
