@@ -178,5 +178,47 @@ def getHandValue(cards):
 
     return value
 
+def displayCards(cards):
+    """Display all cards in cards list."""
+    rows = ['', '', '', '', ''] # Text to be displayed on each row
+
+    for i, card in enumerate(cards):
+        rows[0] += ' ___ ' # Print top line of card
+        if card == BACKSIDE:
+            # Print back of card
+            rows[1] += '|## | '
+            rows[2] += '|###| '
+            rows[3] += '|_##| '
+        else:
+            # Print front of card
+            rank, suit = card # Card is a tuple
+            rows[1] += '|{} | '.format(rank.ljust(2))
+            rows[2] += '| {} | '.format(suit)
+            rows[3] += '|_{}| '.format(rank.rjust(2, '_'))
+
+    # Print each row on the screen
+    for row in rows:
+        print(row)
+
+def getMove(playerHand, money):
+    """Asks the player for their move and returns 'H' for hit, 'S' for
+    stand, and 'D' for double down."""
+    while True: # Loop until player enters a valid move
+        # Determine what moves the player can make
+        moves = ['(H)it', '(S)tand']
+
+        # The player can double down on their first move.
+        # We can tell this since the'll have exactly 2 cards
+        if len(playerHand) == 2 and money > 0:
+            moves.append('(D)ouble down')
+
+        # Get the player's move
+        movePrompt = ', '.join(moves) + '> '
+        move = input(movePrompt).upper()
+        if move in ('H', 'S'):
+            return move # Player has entered a valid move
+        if move == 'D' and '(D)ouble down' in moves:
+            return move # Sometimes a valid input
+
 if __name__ == "__main__":
     main()
